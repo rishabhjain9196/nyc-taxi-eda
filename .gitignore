@@ -1,0 +1,14 @@
+# Environments.
+.venv/
+venv/
+
+# Downloaded and generated data.
+data/*
+!data/README.md
+
+# Generated working files.
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
