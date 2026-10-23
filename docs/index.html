@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NYC Yellow Taxis in 2023</title>
+<meta name="description" content="An exploratory analysis of 38.3 million New York City yellow taxi trips in 2023: when and where people ride, how congestion shapes speed and price, and how passengers tip.">
+<style>
+:root {
+  --ink: #111827; --muted: #4b5563; --faint: #9ca3af; --line: #e5e7eb;
+  --bg: #fafaf7; --card: #ffffff; --night: #14110a;
+  --red: #dc2626; --amber: #f59e0b; --green: #16a34a; --blue: #2563eb; --taxi: #facc15;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { margin: 0; font: 17px/1.65 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+a { color: var(--blue); }
+img { max-width: 100%; display: block; }
+
+/* Navigation */
+nav { position: sticky; top: 0; z-index: 10; background: rgba(20, 17, 10, 0.95); backdrop-filter: blur(6px); border-bottom: 3px solid var(--taxi); }
+nav .inner { max-width: 1160px; margin: auto; padding: 0 24px; display: flex; gap: 22px; align-items: center; overflow-x: auto; white-space: nowrap; height: 54px; scrollbar-width: none; }
+nav .inner::-webkit-scrollbar { display: none; }
+nav .brand { color: var(--taxi); font-weight: 700; margin-right: 10px; text-decoration: none; }
+nav a.link { color: #d6d3d1; text-decoration: none; font-size: 14px; }
+nav a.link:hover { color: #fff; }
+
+/* Hero */
+header.hero { background: radial-gradient(1200px 500px at 85% 0%, rgba(250, 204, 21, 0.38), transparent 60%),
+                            radial-gradient(900px 500px at 10% 100%, rgba(234, 88, 12, 0.30), transparent 60%), var(--night);
+              color: #fff; padding: 84px 24px 72px; }
+header.hero .inner { max-width: 1160px; margin: auto; }
+.kicker { text-transform: uppercase; letter-spacing: 0.14em; font-size: 13px; color: #fde68a; font-weight: 600; }
+header.hero h1 { font-size: clamp(40px, 6vw, 68px); line-height: 1.05; margin: 14px 0 18px; letter-spacing: -0.02em; }
+header.hero .lede { font-size: 21px; max-width: 780px; color: #d6d3d1; margin: 0 0 40px; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.stat { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 16px 18px; }
+.stat b { display: block; font-size: 28px; line-height: 1.15; white-space: nowrap; }
+.stat span { color: #d6d3d1; font-size: 14px; line-height: 1.4; display: block; margin-top: 4px; }
+.hero .actions { margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-block; padding: 11px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; }
+.btn.primary { background: var(--taxi); color: var(--night); }
+.btn.ghost { color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); }
+
+/* Layout */
+main { max-width: 1160px; margin: auto; padding: 0 24px 40px; }
+section { padding: 64px 0 8px; }
+section > h2 { font-size: 34px; margin: 0 0 6px; letter-spacing: -0.01em; }
+.num { color: var(--faint); font-weight: 600; margin-right: 10px; }
+.intro { color: var(--muted); max-width: 780px; margin: 0 0 22px; font-size: 18px; }
+h3 { font-size: 22px; margin: 40px 0 10px; }
+
+/* Key findings */
+.findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: -36px; }
+.finding { background: var(--card); border-radius: 16px; padding: 22px 24px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); border-top: 5px solid var(--blue); }
+.finding.red { border-color: var(--red); } .finding.amber { border-color: var(--amber); } .finding.green { border-color: var(--green); }
+.finding b { font-size: 34px; display: block; line-height: 1.1; margin-bottom: 6px; }
+.finding p { margin: 0; color: var(--muted); font-size: 15.5px; }
+
+/* Figures */
+figure { margin: 18px 0 8px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05); }
+figure a { display: block; cursor: zoom-in; }
+figure img { border-radius: 8px; margin: auto; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.map-row { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; align-items: start; }
+
+/* Takeaways */
+ul.takeaways { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 10px; }
+ul.takeaways li { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--blue); border-radius: 10px; padding: 12px 16px; }
+ul.takeaways.red li { border-left-color: var(--red); }
+ul.takeaways.green li { border-left-color: var(--green); }
+ul.takeaways.amber li { border-left-color: var(--amber); }
+.howto { background: #fefce8; border: 1px solid #fde68a; border-radius: 12px; padding: 14px 18px; margin: 16px 0; font-size: 15.5px; }
+
+/* Funnel */
+.funnel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.funnel div { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; border-top: 5px solid var(--taxi); }
+.funnel b { font-size: 30px; display: block; line-height: 1.15; }
+.funnel span { color: var(--muted); font-size: 15px; }
+
+/* Bar panels */
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+.panel h4 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.bar { display: grid; grid-template-columns: 200px 1fr 64px; gap: 12px; align-items: center; margin: 9px 0; font-size: 15px; }
+.bar .track { background: #f1f5f9; border-radius: 6px; height: 16px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 6px; background: var(--amber); }
+.bar .fill.mh { background: #ea580c; }
+.bar .fill.air { background: var(--blue); }
+.bar .fill.g { background: var(--green); }
+.bar .fill.r { background: var(--red); }
+.bar .fill.n { background: #9ca3af; }
+.bar b { text-align: right; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* Recommendations */
+.recs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.rec { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; border-top: 5px solid var(--taxi); }
+.rec h4 { margin: 0 0 10px; font-size: 19px; }
+.rec ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 15.5px; }
+.rec li { margin: 6px 0; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 14px 0; border-radius: 12px; }
+.table-wrap table { margin: 0; min-width: 520px; }
+table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); font-size: 15.5px; margin: 14px 0; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: #f5f5f4; font-size: 13.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: none; }
+
+/* Method steps */
+.steps { counter-reset: step; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.step { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; position: relative; }
+.step::before { counter-increment: step; content: counter(step); position: absolute; top: 16px; right: 18px; font-size: 26px; font-weight: 700; color: #e7e5e4; }
+.step b { display: block; margin-bottom: 4px; }
+.step span { color: var(--muted); font-size: 15px; }
+
+footer { background: var(--night); color: #d6d3d1; padding: 40px 24px; margin-top: 60px; font-size: 15px; border-top: 3px solid var(--taxi); }
+footer .inner { max-width: 1160px; margin: auto; display: grid; gap: 8px; }
+footer a { color: #fff; }
+
+@media (max-width: 1100px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) { .recs, .map-row { grid-template-columns: 1fr; } }
+@media (max-width: 820px) {
+  .two, .funnel { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .stats .stat:last-child { grid-column: span 2; }
+  header.hero { padding: 56px 20px 64px; }
+  section > h2 { font-size: 28px; }
+  .bar { grid-template-columns: 130px 1fr 54px; font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <a class="brand" href="#top">NYC Yellow Taxis 2023</a>
+    <a class="link" href="#summary">Summary</a>
+    <a class="link" href="#data">Data</a>
+    <a class="link" href="#demand">Demand</a>
+    <a class="link" href="#geography">Geography</a>
+    <a class="link" href="#speed">Speed</a>
+    <a class="link" href="#money">Fares and revenue</a>
+    <a class="link" href="#passengers">Tips and passengers</a>
+    <a class="link" href="#recommendations">Recommendations</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="inner">
+    <div class="kicker">NYC Taxi and Limousine Commission trip records &nbsp;|&nbsp; January to December 2023</div>
+    <h1>NYC Yellow Taxis in 2023</h1>
+    <p class="lede">A year of New York City yellow taxi trips: when and where people ride, how congestion shapes speed and price, and how passengers tip.</p>
+    <div class="stats">
+      <div class="stat"><b>38.3M</b><span>trips in 2023</span></div>
+      <div class="stat"><b>$1.10B</b><span>estimated revenue</span></div>
+      <div class="stat"><b>18:00</b><span>busiest hour of the day</span></div>
+      <div class="stat"><b>10.9 mph</b><span>average speed at 17:00</span></div>
+      <div class="stat"><b>22.3%</b><span>average tip on card trips</span></div>
+    </div>
+    <div class="actions">
+      <a class="btn primary" href="#summary">Read the findings</a>
+      <a class="btn ghost" href="https://github.com/rishabhjain9196/nyc-taxi-eda/blob/main/notebooks/nyc_taxi_eda.ipynb">Open the notebook</a>
+      <a class="btn ghost" href="https://github.com/rishabhjain9196/nyc-taxi-eda">View the code</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section id="summary" style="padding-top: 0">
+  <div class="findings">
+    <div class="finding amber"><b>2.68M</b><p>Estimated trips starting in the 18:00 hour across 2023, the busiest hour of the day.</p></div>
+    <div class="finding"><b>2.5&times;</b><p>Weekend pickups at midnight compared with weekdays. Weekends run late.</p></div>
+    <div class="finding red"><b>25.0 to 10.9 mph</b><p>Average speed at 05:00 against 17:00. Congestion more than halves speed.</p></div>
+    <div class="finding"><b>4.3 to 1</b><p>Pickups per dropoff at JFK Airport. Many taxis must arrive there empty.</p></div>
+    <div class="finding red"><b>$4.37 to $6.00</b><p>Fare per mile at 05:00 against the afternoon, because the meter also charges for slow traffic.</p></div>
+    <div class="finding green"><b>26.3%</b><p>Tip rate on trips under 2 miles, against 20.0% on trips over 5 miles.</p></div>
+  </div>
+</section>
+
+<section id="data">
+  <h2><span class="num">01</span>The data</h2>
+  <p class="intro">The Taxi and Limousine Commission publishes every yellow taxi trip. Each record has times, pickup and dropoff zones, distance, passengers, payment and nine charge fields.</p>
+  <div class="funnel">
+    <div><b>38,310,226</b><span>trips recorded in 2023, across 263 taxi zones</span></div>
+    <div><b>287,296</b><span>trips sampled: 0.75% of every pickup date and hour, with a fixed seed</span></div>
+    <div><b>283,908</b><span>trips after cleaning, which is 98.8% of the sample</span></div>
+  </div>
+  <ul class="takeaways">
+    <li><b>Sampling by date and hour keeps busy days, quiet days and holidays.</b> Each month's share of the sample matches its share of all trips to within 0.01 percentage points.</li>
+    <li><b>Counts from the sample are divided by 0.0075</b> to estimate full-year totals.</li>
+  </ul>
+
+  <h3>Cleaning</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Issue</th><th class="r">Share of sample</th><th>Treatment</th></tr></thead>
+    <tbody>
+      <tr><td>Negative charges, all from one vendor</td><td class="r">1.0%</td><td>Removed. 87% match a positive trip with the same time, zones and amount, so they are reversals.</td></tr>
+      <tr><td>Missing passengers, rate code and fees, with payment type 0</td><td class="r">3.4%</td><td>Imputed. Congestion and airport fees were inferred from each trip's fare breakdown.</td></tr>
+      <tr><td>Zero passengers</td><td class="r">1.5%</td><td>Set to one, because a paid trip carries at least one passenger.</td></tr>
+      <tr><td>Impossible durations, distances and speeds</td><td class="r">0.2%</td><td>Removed. Examples include trips over 250 miles, over five hours or faster than 80 mph.</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="takeaways">
+    <li><b>The longest trip fell from 44,410 miles to 96 miles,</b> and the longest duration from about 24 hours to 5 hours.</li>
+  </ul>
+</section>
+
+<section id="demand">
+  <h2><span class="num">02</span>When people ride</h2>
+  <p class="intro">Demand follows the working day on weekdays and the night on weekends.</p>
+  <figure><a href="figures/weekday_vs_weekend.png"><img src="figures/weekday_vs_weekend.png" alt="Average pickups per day by hour, weekdays against weekends" loading="lazy"></a></figure>
+  <ul class="takeaways amber">
+    <li><b>Weekdays peak at 18:00,</b> after a steep rise from 06:00 to 08:00.</li>
+    <li><b>Weekend pickups at midnight are 2.5 times the weekday level.</b></li>
+    <li><b>Weekend mornings start about two hours later</b> than weekday mornings.</li>
+    <li><b>Demand is lowest at 04:00,</b> at under a tenth of the peak.</li>
+  </ul>
+  <div class="two">
+    <div>
+      <h3>By month</h3>
+      <figure><a href="figures/pickups_by_month.png"><img src="figures/pickups_by_month.png" alt="Pickups by month" loading="lazy"></a></figure>
+      <ul class="takeaways">
+        <li><b>May and October are the busiest months,</b> with about 3.47 million trips each.</li>
+        <li><b>August is the quietest,</b> with about 2.79 million trips.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>By day of the week</h3>
+      <figure><a href="figures/pickups_by_day.png"><img src="figures/pickups_by_day.png" alt="Pickups by day of the week" loading="lazy"></a></figure>
+      <ul class="takeaways">
+        <li><b>Thursday is the busiest day,</b> with 856 sampled trips a day on average.</li>
+        <li><b>Sunday is the quietest,</b> with 677 sampled trips a day.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="geography">
+  <h2><span class="num">03</span>Where people ride</h2>
+  <p class="intro">Pickups concentrate in Manhattan and at the airports. Most of the outer boroughs see very few yellow taxi pickups.</p>
+  <div class="map-row">
+    <figure><a href="figures/pickups_by_zone.png"><img src="figures/pickups_by_zone.png" alt="Map of sampled pickups by taxi zone, on a log scale" loading="lazy"></a></figure>
+    <div class="panel">
+      <h4>Top 10 pickup zones, share of all pickups</h4>
+      <div class="bar"><span>JFK Airport</span><div class="track"><div class="fill air" style="width: 100%"></div></div><b>5.2%</b></div>
+      <div class="bar"><span>Upper East Side South</span><div class="track"><div class="fill mh" style="width: 90.4%"></div></div><b>4.7%</b></div>
+      <div class="bar"><span>Midtown Center</span><div class="track"><div class="fill mh" style="width: 88.5%"></div></div><b>4.6%</b></div>
+      <div class="bar"><span>Upper East Side North</span><div class="track"><div class="fill mh" style="width: 80.8%"></div></div><b>4.2%</b></div>
+      <div class="bar"><span>Midtown East</span><div class="track"><div class="fill mh" style="width: 67.3%"></div></div><b>3.5%</b></div>
+      <div class="bar"><span>Penn Station</span><div class="track"><div class="fill mh" style="width: 65.4%"></div></div><b>3.4%</b></div>
+      <div class="bar"><span>LaGuardia Airport</span><div class="track"><div class="fill air" style="width: 63.5%"></div></div><b>3.3%</b></div>
+      <div class="bar"><span>Lincoln Square East</span><div class="track"><div class="fill mh" style="width: 63.5%"></div></div><b>3.3%</b></div>
+      <div class="bar"><span>Times Sq/Theatre District</span><div class="track"><div class="fill mh" style="width: 63.5%"></div></div><b>3.3%</b></div>
+      <div class="bar"><span>Murray Hill</span><div class="track"><div class="fill mh" style="width: 55.8%"></div></div><b>2.9%</b></div>
+      <div class="legend"><span><i style="background: var(--blue)"></i>Airport, Queens</span><span><i style="background: #ea580c"></i>Manhattan</span></div>
+    </div>
+  </div>
+  <ul class="takeaways">
+    <li><b>JFK Airport is the single busiest pickup zone.</b> Eight of the ten busiest zones are in Manhattan.</li>
+    <li><b>Pickups elsewhere are sparse.</b> All 20 Staten Island zones, 24 of 43 Bronx zones and 30 of 69 Queens zones had fewer than 10 sampled pickups in the year.</li>
+  </ul>
+
+  <h3>Where taxis arrive full and leave empty</h3>
+  <div class="two" style="align-items: start">
+    <figure style="margin-top: 0"><a href="figures/pickup_dropoff_ratio.png"><img src="figures/pickup_dropoff_ratio.png" alt="Pickup to dropoff ratio for the highest and lowest zones" loading="lazy"></a><figcaption>A value above 1 means more trips start than end in the zone.</figcaption></figure>
+    <ul class="takeaways amber" style="margin-top: 0">
+      <li><b>East Elmhurst has 8.24 pickups for every dropoff.</b> It borders LaGuardia Airport, so many of its pickups are likely airport trips.</li>
+      <li><b>JFK has 4.29 and LaGuardia 2.51 pickups per dropoff.</b> Many taxis must arrive empty to meet this demand.</li>
+      <li><b>Penn Station, at 1.57, has the highest ratio in Manhattan.</b></li>
+      <li><b>Residential zones such as Roosevelt Island, at 0.04, are net destinations.</b> Riverdale, Middle Village and Inwood follow the same pattern. Taxis that end trips there often leave empty.</li>
+      <li><b>Newark Airport, at 0.06, is mostly a dropoff point.</b> It lies outside the city.</li>
+    </ul>
+  </div>
+
+  <h3>Busy zones through the day</h3>
+  <figure><a href="figures/top_zones_by_hour.png"><img src="figures/top_zones_by_hour.png" alt="Hourly pickups and dropoffs in the busiest zones" loading="lazy"></a></figure>
+  <ul class="takeaways">
+    <li><b>JFK Airport is busy from 14:00 until midnight,</b> and its pickups peak at 22:00.</li>
+    <li><b>Dropoffs in Midtown Center peak from 08:00 to 10:00,</b> as commuters arrive in the business district.</li>
+  </ul>
+
+  <h3>The night economy</h3>
+  <figure><a href="figures/night_zones.png"><img src="figures/night_zones.png" alt="Top night pickup and dropoff zones" loading="lazy"></a></figure>
+  <ul class="takeaways">
+    <li><b>Trips from 11 PM to 5 AM are 11.5% of trips and 11.5% of revenue.</b> The average night total of $28.99 equals the daytime average.</li>
+    <li><b>East Village, JFK Airport and the West Village lead night pickups.</b> East Village also leads night dropoffs.</li>
+  </ul>
+</section>
+
+<section id="speed">
+  <h2><span class="num">04</span>Speed and congestion</h2>
+  <p class="intro">Speed for each pickup hour is total miles divided by total hours of trips in that hour, so very short trips do not distort it.</p>
+  <figure><a href="figures/speed_by_hour.png"><img src="figures/speed_by_hour.png" alt="Average taxi speed by pickup hour" loading="lazy"></a></figure>
+  <ul class="takeaways red">
+    <li><b>Taxis are fastest at 05:00, at 25.0 mph, and slowest at 17:00, at 10.9 mph.</b></li>
+    <li><b>From 08:00 to 18:00, speed stays between 10.9 and 12.6 mph.</b> The whole working day is congested, not just the rush hours.</li>
+  </ul>
+
+  <h3>The slowest routes</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Route</th><th class="r">Hour</th><th class="r">Average speed</th></tr></thead>
+    <tbody>
+      <tr><td>Greenwich Village South to Greenwich Village North</td><td class="r">13:00</td><td class="r">1.7 mph</td></tr>
+      <tr><td>Midtown South to Garment District</td><td class="r">17:00</td><td class="r">2.4 mph</td></tr>
+      <tr><td>Penn Station/Madison Sq West to Garment District</td><td class="r">14:00</td><td class="r">2.9 mph</td></tr>
+      <tr><td>Midtown East to Times Sq/Theatre District</td><td class="r">13:00</td><td class="r">3.0 mph</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="takeaways red">
+    <li><b>These are short trips of under a mile that take 10 to 25 minutes.</b> That is about walking pace or slower.</li>
+    <li><b>Route speeds use pickup zone, dropoff zone and hour combinations</b> with at least five sampled trips.</li>
+  </ul>
+</section>
+
+<section id="money">
+  <h2><span class="num">05</span>Fares and revenue</h2>
+  <p class="intro">Revenue uses trips with a positive fare and total. Fare per mile is total fares divided by total miles in each group, so very short trips do not dominate.</p>
+
+  <div class="two">
+    <div>
+      <h3 style="margin-top: 10px">Monthly revenue</h3>
+      <figure><a href="figures/monthly_revenue.png"><img src="figures/monthly_revenue.png" alt="Estimated monthly revenue" loading="lazy"></a></figure>
+      <ul class="takeaways">
+        <li><b>Estimated 2023 revenue is $1.10 billion.</b></li>
+        <li><b>Monthly revenue ranges from $79 million in February to $104 million in October.</b></li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top: 10px">What drives the fare</h3>
+      <div class="panel">
+        <h4>Correlation</h4>
+        <div class="bar"><span>Fare and distance</span><div class="track"><div class="fill g" style="width: 94.7%"></div></div><b>0.947</b></div>
+        <div class="bar"><span>Fare and duration</span><div class="track"><div class="fill g" style="width: 80.4%"></div></div><b>0.804</b></div>
+        <div class="bar"><span>Tip and distance</span><div class="track"><div class="fill g" style="width: 73.5%"></div></div><b>0.735</b></div>
+        <div class="bar"><span>Fare and passengers</span><div class="track"><div class="fill n" style="width: 4.5%"></div></div><b>0.045</b></div>
+      </div>
+      <ul class="takeaways">
+        <li><b>The meter charges for distance and time,</b> so fare tracks both closely.</li>
+        <li><b>Group size has almost no effect on the fare.</b></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Price per mile through the week</h3>
+  <figure><a href="figures/fare_per_mile_by_time.png"><img src="figures/fare_per_mile_by_time.png" alt="Fare per mile by hour and day" loading="lazy"></a></figure>
+  <ul class="takeaways red">
+    <li><b>Fare per mile is lowest at 05:00, at $4.37,</b> and reaches about $6.00 from midday to 18:00. It mirrors the speed curve.</li>
+    <li><b>Wednesday and Thursday are the most expensive days,</b> at $5.86 and $5.84 per mile. Sunday is the cheapest, at $5.18.</li>
+  </ul>
+
+  <div class="two">
+    <div>
+      <h3>Distance tiers</h3>
+      <div class="table-wrap"><table style="min-width: 0">
+        <thead><tr><th>Distance</th><th class="r">Creative Mobile</th><th class="r">VeriFone</th></tr></thead>
+        <tbody>
+          <tr><td>Up to 2 miles</td><td class="r">$8.69</td><td class="r">$8.97</td></tr>
+          <tr><td>2 to 5 miles</td><td class="r">$6.28</td><td class="r">$6.41</td></tr>
+          <tr><td>Over 5 miles</td><td class="r">$4.25</td><td class="r">$4.30</td></tr>
+        </tbody>
+      </table></div>
+      <ul class="takeaways">
+        <li><b>Fare per mile halves with distance,</b> because the starting charge is spread over more miles.</li>
+        <li><b>The two main vendors differ by at most $0.21 per mile</b> in any hour.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Group size</h3>
+      <div class="panel">
+        <h4>Fare per mile per passenger</h4>
+        <div class="bar"><span>1 passenger</span><div class="track"><div class="fill" style="width: 100%"></div></div><b>$5.68</b></div>
+        <div class="bar"><span>2 passengers</span><div class="track"><div class="fill" style="width: 47.4%"></div></div><b>$2.69</b></div>
+        <div class="bar"><span>3 passengers</span><div class="track"><div class="fill" style="width: 32.4%"></div></div><b>$1.84</b></div>
+        <div class="bar"><span>4 passengers</span><div class="track"><div class="fill" style="width: 24.1%"></div></div><b>$1.37</b></div>
+        <div class="bar"><span>5 passengers</span><div class="track"><div class="fill" style="width: 19.7%"></div></div><b>$1.12</b></div>
+        <div class="bar"><span>6 passengers</span><div class="track"><div class="fill" style="width: 16.4%"></div></div><b>$0.93</b></div>
+      </div>
+      <ul class="takeaways green">
+        <li><b>Fare per passenger falls by 84% from one to six passengers,</b> because the fare per mile stays between $5.37 and $5.68.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>How people pay</h3>
+  <div class="panel">
+    <div class="bar"><span>Credit card</span><div class="track"><div class="fill air" style="width: 78.7%"></div></div><b>78.7%</b></div>
+    <div class="bar"><span>Cash</span><div class="track"><div class="fill g" style="width: 16.7%"></div></div><b>16.7%</b></div>
+    <div class="bar"><span>Not recorded</span><div class="track"><div class="fill n" style="width: 3.4%"></div></div><b>3.4%</b></div>
+    <div class="bar"><span>Dispute</span><div class="track"><div class="fill r" style="width: 0.7%"></div></div><b>0.7%</b></div>
+    <div class="bar"><span>No charge</span><div class="track"><div class="fill n" style="width: 0.5%"></div></div><b>0.5%</b></div>
+  </div>
+  <ul class="takeaways">
+    <li><b>Almost four trips in five are paid by card.</b> Tips are recorded only for card trips, so the tip analysis uses card trips.</li>
+    <li><b>"Not recorded" is kept as its own category.</b> Treating these trips as card payments would overstate card use and distort tips.</li>
+  </ul>
+</section>
+
+<section id="passengers">
+  <h2><span class="num">06</span>Tips and passengers</h2>
+  <p class="intro">Card passengers tip 22.3% of the fare on average. Short, quick trips earn the most generous tips.</p>
+  <figure><a href="figures/tip_rate.png"><img src="figures/tip_rate.png" alt="Tip rate by distance, passengers and hour" loading="lazy"></a></figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Measure</th><th class="r">Tip under 10%</th><th class="r">Tip over 25%</th></tr></thead>
+    <tbody>
+      <tr><td>Average distance</td><td class="r">4.84 miles</td><td class="r">2.31 miles</td></tr>
+      <tr><td>Average fare</td><td class="r">$25.66</td><td class="r">$14.43</td></tr>
+      <tr><td>Average duration</td><td class="r">21.4 minutes</td><td class="r">12.3 minutes</td></tr>
+      <tr><td>Airport trips</td><td class="r">11%</td><td class="r">5%</td></tr>
+      <tr><td>Average passengers</td><td class="r">1.37</td><td class="r">1.37</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="takeaways green">
+    <li><b>Trips under 2 miles get the highest tip rate, at 26.3%.</b> Trips over 5 miles get 20.0%.</li>
+    <li><b>Low tips come from longer, pricier and airport trips.</b> Group size is the same in both groups.</li>
+    <li><b>Tip rates peak from 17:00 to 19:00</b> and are lowest from 05:00 to 06:00.</li>
+  </ul>
+
+  <h3>Who rides together</h3>
+  <figure><a href="figures/passengers_by_day_hour.png"><img src="figures/passengers_by_day_hour.png" alt="Average passengers by day and hour" loading="lazy"></a></figure>
+  <ul class="takeaways">
+    <li><b>77.4% of trips carry one passenger,</b> and the average is 1.38.</li>
+    <li><b>Groups are largest on Friday and Saturday evenings.</b></li>
+  </ul>
+
+  <h3>Surcharges</h3>
+  <figure><a href="figures/surcharges_by_hour.png"><img src="figures/surcharges_by_hour.png" alt="Share of trips with each charge by hour" loading="lazy"></a></figure>
+  <ul class="takeaways">
+    <li><b>The congestion surcharge applies to 92.3% of trips.</b> It covers 97.6% of Manhattan pickups but only 6.7% of Bronx pickups.</li>
+    <li><b>The extra charge applies mainly from 16:00 to 05:00,</b> which matches the rush-hour and overnight surcharges.</li>
+  </ul>
+</section>
+
+<section id="recommendations">
+  <h2><span class="num">07</span>Recommendations</h2>
+  <p class="intro">Each recommendation follows from a measured pattern above.</p>
+  <div class="recs">
+    <div class="rec">
+      <h4>Dispatch</h4>
+      <ul>
+        <li>Add supply from 15:00 to 19:00 on weekdays, when demand peaks and speeds fall to about 11 mph.</li>
+        <li>Shift weekend supply later, towards midnight.</li>
+        <li>Avoid short Midtown routes at midday and at 17:00, when some average under 3 mph.</li>
+      </ul>
+    </div>
+    <div class="rec">
+      <h4>Positioning</h4>
+      <ul>
+        <li>Keep queues at JFK and LaGuardia from the afternoon until midnight.</li>
+        <li>Place cars in the East Village, the West Village and at JFK from 11 PM to 5 AM.</li>
+        <li>Plan return trips from residential zones where dropoffs exceed pickups by more than ten to one.</li>
+      </ul>
+    </div>
+    <div class="rec">
+      <h4>Pricing</h4>
+      <ul>
+        <li>Target any new surcharge at the 15:00 to 19:00 peak rather than the whole day.</li>
+        <li>Consider a group fare, because fare per passenger already falls by 84% from one to six riders.</li>
+        <li>Review long and airport trips, which receive the lowest tip rates.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Limitations</h3>
+  <ul class="takeaways">
+    <li><b>The analysis uses a 0.75% sample,</b> so estimates for small zones and rare routes are uncertain.</li>
+    <li><b>Cash tips are not recorded,</b> so the tip analysis covers card trips only.</li>
+    <li><b>Trip records show completed journeys only.</b> They do not show unmet demand, waiting times or empty driving.</li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <div class="inner">
+    <div><b>Rishabh Jain</b> &nbsp;|&nbsp; <a href="https://github.com/rishabhjain9196/nyc-taxi-eda">Code and notebook on GitHub</a> &nbsp;|&nbsp; <a href="https://github.com/rishabhjain9196/nyc-taxi-eda/blob/main/docs/report.md">Full written report</a></div>
+    <div>Trip records and taxi zones: <a href="https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page">NYC Taxi and Limousine Commission</a>. Raw data is not redistributed.</div>
+    <div>Built with Python, pandas, GeoPandas, Matplotlib and seaborn.</div>
+  </div>
+</footer>
+
+</body>
+</html>

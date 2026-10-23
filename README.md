@@ -13,7 +13,7 @@ By **Rishabh Jain**
 
 This project analyses every yellow taxi trip recorded in New York City in 2023. It draws a stratified sample, cleans data quality issues, and studies when, where and how people travel. The analysis ends with recommendations for dispatch, cab positioning and pricing.
 
-**Explore:** [Notebook](notebooks/nyc_taxi_eda.ipynb) · [Report](docs/report.md) · [Methods notes](docs/notes.md) · [Data](data/README.md)
+**Explore:** [Visual report](https://rishabhjain9196.github.io/nyc-taxi-eda/) · [Notebook](notebooks/nyc_taxi_eda.ipynb) · [Report](docs/report.md) · [Methods notes](docs/notes.md) · [Data](data/README.md)
 
 <p align="center">
   <img src="docs/figures/pickups_by_zone.png" alt="Map of pickups by taxi zone" width="48%">
@@ -133,6 +133,7 @@ Open [the notebook](notebooks/nyc_taxi_eda.ipynb), select the `.venv` kernel and
 ```text
 notebooks/nyc_taxi_eda.ipynb   Full analysis with outputs
 docs/report.md                 Detailed findings and recommendations
+docs/index.html                Visual report, published with GitHub Pages
 docs/notes.md                  Methods, definitions and data issues
 docs/figures/                  27 charts produced by the notebook
 scripts/download_data.py       Downloads the 2023 trip records and taxi zones
